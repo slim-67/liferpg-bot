@@ -1,2 +1,4 @@
-aiogram
-aiosqlite 
+aiogram==3.25.0
+aiosqlite==0.22.1
+aiofiles==25.1.0
+magic-filter==1.0.12
