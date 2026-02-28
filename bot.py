@@ -413,7 +413,9 @@ async def scheduled_notifications():
         if now.hour == 11 and now.minute == 0 and week_day >= 5:
             await bot.send_message(YOUR_USER_ID, "🌿 Выходной, но час физики/математики не помешает.")
         await asyncio.sleep(60)
-
+@dp.message(Command("test_notify"))
+async def test_notify(message: types.Message):
+    await message.answer("🔔 Тестовое уведомление (команда)")
 # ========== ЗАПУСК ==========
 async def main():
     await init_db()
