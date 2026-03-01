@@ -544,7 +544,7 @@ async def send_startup_notification():
 
 async def scheduled_notifications():
     while True:
-        now = datetime.now().time()
+        now = (datetime.now() + timedelta(hours=3)).time()
         week_day = datetime.now().weekday()
         
         if now.hour == 7 and now.minute == 0:
@@ -554,14 +554,26 @@ async def scheduled_notifications():
         if now.hour == 15 and now.minute == 30 and week_day < 4:
             await bot.send_message(YOUR_USER_ID, "📚 Время делать домашку! Убери телефон.")
         
-        if now.hour == 17 and now.minute == 30 and week_day < 4:
-            await bot.send_message(YOUR_USER_ID, "💻 Время программировать! 30 минут кода.")
+        if now.hour == 17 and now.minute == 30 and week_day in [0, 1, 3]:
+            await bot.send_message(YOUR_USER_ID, "🧠 30 минут подготовки к ЦТ/ЦЭ. Физика или математика — погнали")
+        
+        if now.hour == 17 and now.minute == 30 and week_day == 2:
+            await bot.send_message(YOUR_USER_ID, "💻 Через 30 минут курсы по программированию")
+        
+        if now.hour == 18 and now.minute == 0 and week_day == 2:
+            await bot.send_message(YOUR_USER_ID, "💻 Курсы начались. Вникай 🔥")
+        
+        if now.hour == 18 and now.minute == 30 and week_day < 4:
+            await bot.send_message(YOUR_USER_ID, "🎮 Можно отдохнуть 30 минут — но без экрана лучше")
         
         if now.hour == 19 and now.minute == 0:
             await bot.send_message(YOUR_USER_ID, "🎮 Отдыхай! Ты сегодня молодец.")
         
+        if now.hour == 15 and now.minute == 30 and week_day == 4:
+            await bot.send_message(YOUR_USER_ID, "🧠 Через 30 минут репетитор. Соберись")
+        
         if now.hour == 16 and now.minute == 0 and week_day == 4:
-            await bot.send_message(YOUR_USER_ID, "🧠 Через 30 минут репетитор! Не опоздай.")
+            await bot.send_message(YOUR_USER_ID, "🧠 Репетитор по информатике — не опоздай")
         
         if now.hour == 11 and now.minute == 0 and week_day >= 5:
             await bot.send_message(YOUR_USER_ID, "🌿 Выходной, но час физики/математики не помешает.")
