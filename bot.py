@@ -1,7 +1,8 @@
 import asyncio
 import logging
 import random
-from datetime import datetime, time, timedelta
+import os
+from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -9,18 +10,17 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 import aiosqlite
-import os
 
 # ========== НАСТРОЙКИ ==========
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-YOUR_USER_ID = 1484297802  # ← ТВОЙ ID
+YOUR_USER_ID = 1484297802  # ← ТВОЙ ID ДЛЯ УВЕДОМЛЕНИЙ
 
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
-# ========== БАЗА ДАННЫХ ==========
+# ==================== БАЗА ДАННЫХ ====================
 async def init_db():
     async with aiosqlite.connect("game_bot.db") as db:
         await db.execute('''
@@ -74,9 +74,9 @@ async def init_db():
         ''')
         await db.commit()
 
-# ========== КНОПКИ ==========
+# ==================== КНОПКИ ====================
 def main_keyboard():
-    return ReplyKeyboardMarkup(
+    keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="🎮 Игра"), KeyboardButton(text="👤 Профиль")],
             [KeyboardButton(text="📋 Квесты"), KeyboardButton(text="🏆 Достижения")],
@@ -84,17 +84,19 @@ def main_keyboard():
         ],
         resize_keyboard=True
     )
+    return keyboard
 
 def game_keyboard():
-    return ReplyKeyboardMarkup(
+    keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="➕ Добавить цель"), KeyboardButton(text="📋 Мои цели")],
-            [KeyboardButton(text="✅ Выполнить цель"), KeyboardButton(text="◀ Назад")]
+            [KeyboardButton(text="✅ Выполнить цель"), KeyboardButton(text="◀️ Назад")]
         ],
         resize_keyboard=True
     )
+    return keyboard
 
-# ========== AI ПОМОЩНИК ==========
+# ==================== AI ПОМОЩНИК ====================
 async def get_ai_advice(user_id):
     async with aiosqlite.connect("game_bot.db") as db:
         cursor = await db.execute("SELECT hp, level, total_tasks FROM users WHERE user_id = ?", (user_id,))
@@ -107,12 +109,14 @@ async def get_ai_advice(user_id):
         "🎯 Разбей большую цель на маленькие задачи — так легче начать.",
         "🌟 Каждая выполненная цель делает тебя сильнее!",
         "📚 Учись новому каждый день — это прокачивает мозг.",
-        f"🏆 Ты уже выполнил {total_tasks} задач! Так держать!",
-        "⚡ Самое сложное — начать. Сделай первый шаг прямо сейчас!",
+        "🏆 Ты уже выполнил " + str(total_tasks) + " задач! Так держать!",
+        "⚡️ Самое сложное — начать. Сделай первый шаг прямо сейчас!",
         "🎮 Отдых тоже важен. Не забывай про перерывы.",
         "🌈 Верь в себя — у тебя всё получится!"
     ]
-    return random.choice(advices)# ========== ДОСТИЖЕНИЯ ==========
+    return random.choice(advices)
+
+# ==================== ДОСТИЖЕНИЯ ====================
 async def check_achievements(user_id):
     async with aiosqlite.connect("game_bot.db") as db:
         cursor = await db.execute("SELECT hp, level, total_tasks FROM users WHERE user_id = ?", (user_id,))
@@ -124,7 +128,7 @@ async def check_achievements(user_id):
             ("💪 Новичок", "Выполнить первую задачу", total_tasks >= 1, 50, 5, 0, 0),
             ("🔥 Труженик", "Выполнить 10 задач", total_tasks >= 10, 100, 10, 5, 0),
             ("🏆 Мастер", "Выполнить 50 задач", total_tasks >= 50, 300, 20, 10, 5),
-            ("⭐ Легенда", "Выполнить 100 задач", total_tasks >= 100, 500, 50, 25, 10),
+            ("⭐️ Легенда", "Выполнить 100 задач", total_tasks >= 100, 500, 50, 25, 10),
             ("📈 Уровень 5", "Достичь 5 уровня", level >= 5, 100, 10, 5, 1),
             ("📈 Уровень 10", "Достичь 10 уровня", level >= 10, 200, 20, 10, 3),
             ("❤️ 1000 HP", "Накопить 1000 опыта", hp >= 1000, 300, 30, 15, 5),
@@ -141,7 +145,7 @@ async def check_achievements(user_id):
         await db.commit()
         return new_achievements
 
-# ========== ЕЖЕДНЕВНЫЕ КВЕСТЫ ==========
+# ==================== ЕЖЕДНЕВНЫЕ КВЕСТЫ ====================
 async def generate_daily_quests(user_id):
     today = datetime.now().date().isoformat()
     async with aiosqlite.connect("game_bot.db") as db:
@@ -183,14 +187,20 @@ async def complete_daily_quest(user_id, quest_index):
             return quest[3], quest[4], quest[5], quest[6]
     return None
 
-# ========== СТАРТ ==========
+# ==================== ХЕНДЛЕРЫ ====================
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     user_id = message.from_user.id
     async with aiosqlite.connect("game_bot.db") as db:
         await db.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
         await db.commit()
-    await message.answer("🌟 Добро пожаловать в **LifeRPG**!\n\nПреврати свою жизнь в игру!", parse_mode="Markdown", reply_markup=main_keyboard())# ========== ПРОФИЛЬ ==========
+    await message.answer(
+        "🌟 Добро пожаловать в LifeRPG!\n\n"
+        "Преврати свою жизнь в игру!",
+        parse_mode="Markdown",
+        reply_markup=main_keyboard()
+    )
+
 @dp.message(F.text == "👤 Профиль")
 async def profile(message: types.Message):
     user_id = message.from_user.id
@@ -206,21 +216,35 @@ async def profile(message: types.Message):
         skills_list = ", ".join([s[0] for s in skills]) if skills else "Нет"
         achievements_count = len(achievements)
         await message.answer(
-            f"👤 **Твой профиль**\n\n❤️ HP: {hp}\n📊 Уровень: {level}\n🎯 Выполнено задач: {total_tasks}\n🏆 Достижений: {achievements_count}\n\n🪙 Монеты:\n🟤 Бронза: {bronze}\n⚪ Серебро: {silver}\n🟡 Золото: {gold}\n\n🧠 Навыки: {skills_list}",
-            parse_mode="Markdown", reply_markup=main_keyboard())
+            f"👤 **Твой профиль**\n\n"
+            f"❤️ HP: {hp}\n"
+            f"📊 Уровень: {level}\n"
+            f"🎯 Выполнено задач: {total_tasks}\n"
+            f"🏆 Достижений: {achievements_count}\n\n"
+            f"🪙 Монеты:\n"
+            f"🟤 Бронза: {bronze}\n"
+            f"⚪️ Серебро: {silver}\n"
+            f"🟡 Золото: {gold}\n\n"
+            f"🧠 Навыки: {skills_list}",
+            parse_mode="Markdown",
+            reply_markup=main_keyboard()
+        )
 
-# ========== ИГРА ==========
 @dp.message(F.text == "🎮 Игра")
 async def game_menu(message: types.Message):
     await message.answer("🎮 Меню игры", reply_markup=game_keyboard())
 
-@dp.message(F.text == "◀ Назад")
+@dp.message(F.text == "◀️ Назад")
 async def back_to_main(message: types.Message):
     await message.answer("Главное меню", reply_markup=main_keyboard())
 
 @dp.message(F.text == "➕ Добавить цель")
 async def add_goal_prompt(message: types.Message):
-    await message.answer("✍ Напиши цель в формате:\nНазвание | сложность\n\nСложность: 1 (легко), 2 (средне), 3 (сложно)")
+    await message.answer(
+        "✍️ Напиши цель в формате:\n"
+        "Название | сложность\n\n"
+        "Сложность: 1 (легко), 2 (средне), 3 (сложно)"
+    )
 
 @dp.message(F.text == "📋 Мои цели")
 async def show_goals(message: types.Message):
@@ -233,7 +257,7 @@ async def show_goals(message: types.Message):
         return
     text = "📋 **Твои цели:**\n\n"
     for i, (task_id, title, diff) in enumerate(tasks):
-        emoji = "🟤" if diff == "1" else "⚪" if diff == "2" else "🟡"
+        emoji = "🟤" if diff == "1" else "⚪️" if diff == "2" else "🟡"
         text += f"{i+1}. {emoji} {title}\n"
     await message.answer(text, parse_mode="Markdown")
 
@@ -248,7 +272,7 @@ async def complete_goal_prompt(message: types.Message):
         return
     buttons = []
     for task_id, title, diff in tasks:
-        emoji = "🟤" if diff == "1" else "⚪" if diff == "2" else "🟡"
+        emoji = "🟤" if diff == "1" else "⚪️" if diff == "2" else "🟡"
         buttons.append([InlineKeyboardButton(text=f"{emoji} {title}", callback_data=f"complete_{task_id}")])
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     await message.answer("✅ Какую цель выполнил?", reply_markup=keyboard)
@@ -272,12 +296,17 @@ async def complete_task(callback: types.CallbackQuery):
             await db.execute("UPDATE users SET hp = hp + ?, bronze = bronze + ?, silver = silver + ?, gold = gold + ?, total_tasks = total_tasks + 1 WHERE user_id = ?", (hp, b, s, g, user_id))
             await db.commit()
             await callback.answer("✅ Цель выполнена!")
-            await callback.message.edit_text(f"🎉 Ты получил:\n❤️ +{hp} HP\n🟤 +{b} бронзы\n⚪ +{s} серебра\n🟡 +{g} золота")
+            await callback.message.edit_text(
+                f"🎉 Ты получил:\n"
+                f"❤️ +{hp} HP\n"
+                f"🟤 +{b} бронзы\n⚪️ +{s} серебра\n🟡 +{g} золота"
+            )
             new_achievements = await check_achievements(user_id)
             if new_achievements:
                 text = "🏆 **Новые достижения!**\n\n"
                 for name, desc, hp_r, b_r, s_r, g_r in new_achievements:
-                    text += f"✨ {name}: {desc}\nНаграда: +{hp_r} HP, +{b_r}🟤 +{s_r}⚪ +{g_r}🟡\n\n"
+                    text += f"✨ {name}: {desc}\n"
+                    text += f"Награда: +{hp_r} HP, +{b_r}🟤 +{s_r}⚪️ +{g_r}🟡\n\n"
                 await callback.message.answer(text, parse_mode="Markdown")
 
 @dp.message(F.text == "📋 Квесты")
@@ -291,7 +320,8 @@ async def show_quests(message: types.Message):
     buttons = []
     for i, (quest_text, completed, hp, b, s, g) in enumerate(quests):
         status = "✅" if completed else "❌"
-        text += f"{i+1}. {quest_text} {status}\nНаграда: +{hp}❤️ +{b}🟤 +{s}⚪ +{g}🟡\n\n"
+        text += f"{i+1}. {quest_text} {status}\n"
+        text += f"   Награда: +{hp}❤️ +{b}🟤 +{s}⚪️ +{g}🟡\n\n"
         if not completed:
             buttons.append([InlineKeyboardButton(text=f"✅ Квест {i+1}", callback_data=f"quest_{i}")])
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
@@ -305,12 +335,16 @@ async def complete_quest(callback: types.CallbackQuery):
     if result:
         hp, b, s, g = result
         await callback.answer("✅ Квест выполнен!")
-        await callback.message.edit_text(f"🎉 Квест выполнен!\nНаграда: +{hp}❤️ +{b}🟤 +{s}⚪ +{g}🟡")
+        await callback.message.edit_text(
+            f"🎉 Квест выполнен!\n"
+            f"Награда: +{hp}❤️ +{b}🟤 +{s}⚪️ +{g}🟡"
+        )
         new_achievements = await check_achievements(user_id)
         if new_achievements:
             text = "🏆 **Новые достижения!**\n\n"
             for name, desc, hp_r, b_r, s_r, g_r in new_achievements:
-                text += f"✨ {name}: {desc}\nНаграда: +{hp_r} HP, +{b_r}🟤 +{s_r}⚪ +{g_r}🟡\n\n"
+                text += f"✨ {name}: {desc}\n"
+                text += f"Награда: +{hp_r} HP, +{b_r}🟤 +{s_r}⚪️ +{g_r}🟡\n\n"
             await callback.message.answer(text, parse_mode="Markdown")
     else:
         await callback.answer("❌ Квест уже выполнен или не найден")
@@ -339,13 +373,18 @@ async def ai_helper(message: types.Message):
 @dp.message(F.text == "🛒 Магазин")
 async def shop(message: types.Message):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔮 Логика (50🟤 30⚪ 10🟡)", callback_data="buy_logic")],
-        [InlineKeyboardButton(text="🧠 Память (30🟤 20⚪ 5🟡)", callback_data="buy_memory")],
-        [InlineKeyboardButton(text="✨ Креативность (20🟤 10⚪ 15🟡)", callback_data="buy_creativity")]
+        [InlineKeyboardButton(text="🔮 Логика (50🟤 30⚪️ 10🟡)", callback_data="buy_logic")],
+        [InlineKeyboardButton(text="🧠 Память (30🟤 20⚪️ 5🟡)", callback_data="buy_memory")],
+        [InlineKeyboardButton(text="✨ Креативность (20🟤 10⚪️ 15🟡)", callback_data="buy_creativity")]
     ])
     await message.answer(
-        "🛒 **Магазин навыков**\n\n🔮 Логика — 50🟤 30⚪ 10🟡\n🧠 Память — 30🟤 20⚪ 5🟡\n✨ Креативность — 20🟤 10⚪ 15🟡",
-        parse_mode="Markdown", reply_markup=keyboard)
+        "🛒 **Магазин навыков**\n\n"
+        "🔮 Логика — 50🟤 30⚪️ 10🟡\n"
+        "🧠 Память — 30🟤 20⚪️ 5🟡\n"
+        "✨ Креативность — 20🟤 10⚪️ 15🟡",
+        parse_mode="Markdown",
+        reply_markup=keyboard
+    )
 
 @dp.callback_query(F.data.startswith("buy_"))
 async def buy_skill(callback: types.CallbackQuery):
@@ -383,14 +422,14 @@ async def handle_text(message: types.Message):
             async with aiosqlite.connect("game_bot.db") as db:
                 await db.execute("INSERT INTO tasks (user_id, title, difficulty) VALUES (?, ?, ?)", (user_id, title, difficulty))
                 await db.commit()
-            diff_emoji = "🟤" if difficulty == 1 else "⚪" if difficulty == 2 else "🟡"
+            diff_emoji = "🟤" if difficulty == 1 else "⚪️" if difficulty == 2 else "🟡"
             await message.answer(f"✅ Цель добавлена: {diff_emoji} {title}")
         except ValueError:
             await message.answer("❌ Ошибка формата. Используй: Название | сложность (1, 2 или 3)")
     else:
         await message.answer("Используй кнопки для навигации", reply_markup=main_keyboard())
 
-# ========== УВЕДОМЛЕНИЯ ПО РАСПИСАНИЮ ==========
+# ==================== УВЕДОМЛЕНИЯ ПО РАСПИСАНИЮ ====================
 async def send_startup_notification():
     await asyncio.sleep(5)
     await bot.send_message(YOUR_USER_ID, "🔔 Бот запущен и готов к работе!")
@@ -413,10 +452,8 @@ async def scheduled_notifications():
         if now.hour == 11 and now.minute == 0 and week_day >= 5:
             await bot.send_message(YOUR_USER_ID, "🌿 Выходной, но час физики/математики не помешает.")
         await asyncio.sleep(60)
-@dp.message(Command("test_notify"))
-async def test_notify(message: types.Message):
-    await message.answer("🔔 Тестовое уведомление (команда)")
-# ========== ЗАПУСК ==========
+
+# ==================== ЗАПУСК ====================
 async def main():
     await init_db()
     asyncio.create_task(scheduled_notifications())
