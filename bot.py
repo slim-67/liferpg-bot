@@ -548,9 +548,10 @@ async def handle_text(message: types.Message):
         await message.answer("Используй кнопки для навигации", reply_markup=main_keyboard())
 
 # ==================== ЗАПУСК ====================
+# ==================== ЗАПУСК ====================
 async def main():
     await init_db()
     await dp.start_polling(bot)
 
-if name == "main":
+if __name__ == "__main__":
     asyncio.run(main())
