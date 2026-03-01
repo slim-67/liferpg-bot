@@ -11,9 +11,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 import aiosqlite
 import os
 
-# ========== НАСТРОЙКИ ==========
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-YOUR_USER_ID = 1484297802  # ← ТВОЙ ID
 
 logging.basicConfig(level=logging.INFO)
 
@@ -537,42 +535,9 @@ async def handle_text(message: types.Message):
     else:
         await message.answer("Используй кнопки для навигации", reply_markup=main_keyboard())
 
-# ==================== УВЕДОМЛЕНИЯ ====================
-async def send_startup_notification():
-    await asyncio.sleep(5)
-    await bot.send_message(YOUR_USER_ID, "🔔 Бот запущен и готов к работе!")
-
-async def scheduled_notifications():
-    while True:
-        now = datetime.now().time()
-        week_day = datetime.now().weekday()
-        
-        if now.hour == 7 and now.minute == 0:
-            await bot.send_message(YOUR_USER_ID, "🌅 Доброе утро!\nНе бери телефон первые 10 минут.\nТы справишься сегодня 💪")
-            await asyncio.sleep(60)
-        
-        if now.hour == 15 and now.minute == 30 and week_day < 4:
-            await bot.send_message(YOUR_USER_ID, "📚 Время делать домашку! Убери телефон.")
-        
-        if now.hour == 17 and now.minute == 30 and week_day < 4:
-            await bot.send_message(YOUR_USER_ID, "💻 Время программировать! 30 минут кода.")
-        
-        if now.hour == 19 and now.minute == 0:
-            await bot.send_message(YOUR_USER_ID, "🎮 Отдыхай! Ты сегодня молодец.")
-        
-        if now.hour == 16 and now.minute == 0 and week_day == 4:
-            await bot.send_message(YOUR_USER_ID, "🧠 Через 30 минут репетитор! Не опоздай.")
-        
-        if now.hour == 11 and now.minute == 0 and week_day >= 5:
-            await bot.send_message(YOUR_USER_ID, "🌿 Выходной, но час физики/математики не помешает.")
-        
-        await asyncio.sleep(60)
-
 # ==================== ЗАПУСК ====================
 async def main():
     await init_db()
-    asyncio.create_task(scheduled_notifications())
-    asyncio.create_task(send_startup_notification())
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
